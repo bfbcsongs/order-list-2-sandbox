@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,7 +144,7 @@ body.readonly .ledger-table tbody tr{cursor:default}
   </section>
 </div>
 
-<!-- START MODAL: EXIT only closes the modal -->
+<!-- START MODAL -->
 <div class="modal-backdrop" id="startModal">
   <div class="modal">
     <div class="modal-title" id="startModalTitle">START LEDGER</div>
@@ -198,7 +197,13 @@ const STORAGE_SAVED = "rplmc_name_ledger_saved_files";
 const STORAGE_DRAFT = "rplmc_name_ledger_current_draft";
 const STORAGE_DRAFT_BACKUP = "rplmc_name_ledger_current_draft_backup";
 const MAX_SAVED_FILES = 30;
-const ROW_COUNT = 19;
+const ROW_COUNT = 16;
+
+const DEFAULT_NAMES = [
+  "Bag", "Ces", "Ed", "Ris", "Raq", "Lin",
+  "7/11", "Lea", "Jen", "Swe", "Lan", "Jea",
+  "", "", "", "Flor"
+];
 
 let editingSavedId = null;
 let selectedSavedId = null;
@@ -238,13 +243,14 @@ function getCurrentTime(){
 function buildRows(){
   ledgerBody.innerHTML = "";
   for(let i=1;i<=ROW_COUNT;i++){
+    const defaultName = DEFAULT_NAMES[i-1] || "";
     const tr = document.createElement("tr");
     tr.className = "ledger-row";
     tr.dataset.row = i;
     tr.innerHTML = `
       <td><div class="name-cell">
         <span class="row-number">${i}</span>
-        <input class="name-input" data-field="name" type="text" maxlength="3" autocomplete="off" disabled>
+        <input class="name-input" data-field="name" type="text" maxlength="3" autocomplete="off" value="${escapeHtml(defaultName)}" disabled>
         <span class="time-display" data-field="time"></span>
       </div></td>
       ${["R","P","L","M","C"].map(field=>`
@@ -260,7 +266,7 @@ function buildRows(){
 
 function rowHasContent(row){
   if(!row) return false;
-  return ["name","R","P","L","M","C"].some(field=>
+  return ["R","P","L","M","C"].some(field=>
     row.querySelector(`[data-field="${field}"]`).value.trim() !== ""
   );
 }
@@ -409,7 +415,8 @@ function applyLedger(data){
 
   document.querySelectorAll(".ledger-row").forEach((row,index)=>{
     const item=rows[index]||{};
-    row.querySelector('[data-field="name"]').value=item.name||"";
+    const fallbackName = DEFAULT_NAMES[index] || "";
+    row.querySelector('[data-field="name"]').value = item.name !== undefined && item.name !== "" ? item.name : fallbackName;
     row.querySelector('[data-field="time"]').textContent=item.time||"";
 
     ["R","P","L","M","C"].forEach(field=>{
@@ -424,8 +431,9 @@ function applyLedger(data){
 }
 
 function clearLedgerValues(){
-  document.querySelectorAll(".ledger-row").forEach(row=>{
-    row.querySelector('[data-field="name"]').value="";
+  document.querySelectorAll(".ledger-row").forEach((row, index)=>{
+    const defaultName = DEFAULT_NAMES[index] || "";
+    row.querySelector('[data-field="name"]').value = defaultName;
     row.querySelector('[data-field="time"]').textContent="";
     ["R","P","L","M","C"].forEach(field=>{
       row.querySelector(`[data-field="${field}"]`).value="";
@@ -438,7 +446,7 @@ function clearLedgerValues(){
 function hasLedgerData(data){
   if(!data||!Array.isArray(data.rows)) return false;
   return data.rows.some(row=>
-    ["name","R","P","L","M","C"].some(field=>
+    ["R","P","L","M","C"].some(field=>
       String(row[field]??"").trim()!==""
     )
   );
@@ -517,12 +525,6 @@ function makeLedgerId(){
   return "ledger_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
 }
 
-/*
-  AUTO-SAVE:
-  - The active ledger is saved directly to SAVED FILES.
-  - Every input updates the same file.
-  - Only one file is kept per date.
-*/
 function saveCurrentDraft(){
   if(readonlyMode) return false;
 
@@ -607,11 +609,6 @@ function closeStartModal(){
   startModal.classList.remove("show");
 }
 
-/*
-  EXIT closes only the modal.
-  It does not create a ledger, clear entries, or delete saved files.
-  After EXIT, use EDIT beside the saved date to continue working.
-*/
 document.getElementById("exitStartBtn").addEventListener("click",()=>{
   closeStartModal();
 });
@@ -731,7 +728,6 @@ function finishAfterSave(){
   }
 }
 
-/* FINALIZE CURRENT LEDGER */
 function performSave(){
   const date=saveDateInput.value.trim();
   const name=saveNameInput.value.trim();
@@ -812,7 +808,6 @@ function performSave(){
 
 document.getElementById("confirmSaveBtn").addEventListener("click",performSave);
 
-/* REPLACE EXISTING DATE */
 document.getElementById("cancelReplaceBtn").addEventListener("click",()=>{
   pendingReplaceId=null;
   pendingSaveData=null;
@@ -862,7 +857,6 @@ document.getElementById("confirmReplaceBtn").addEventListener("click",()=>{
   finishAfterSave();
 });
 
-/* PREVIEW SAVED FILE */
 function previewSavedFile(id){
   const file=getSavedFiles().find(item=>item.id===id);
   if(!file) return;
@@ -888,7 +882,6 @@ function previewSavedFile(id){
   renderSavedFiles();
 }
 
-/* RETURN TO CURRENT WORKING LEDGER */
 function returnToCurrent(){
   if(temporaryCurrentState){
     applyLedger(temporaryCurrentState);
@@ -911,11 +904,6 @@ function returnToCurrent(){
   renderSavedFiles();
 }
 
-/*
-  EDIT SAVED FILE:
-  Current entries are already auto-saved, so switching files
-  does not require finalizing the current ledger first.
-*/
 function requestEditSavedFile(id){
   editSavedFile(id);
 }
@@ -939,7 +927,6 @@ function editSavedFile(id){
   setCurrentRow(null);
 }
 
-/* DELETE SAVED FILE */
 function deleteSavedFile(id){
   const files=getSavedFiles();
   const file=files.find(item=>item.id===id);
@@ -975,7 +962,6 @@ function deleteSavedFile(id){
   renderSavedFiles();
 }
 
-/* RENDER SAVED FILES */
 function renderSavedFiles(){
   const files=getSavedFiles().sort(sortSavedFiles);
 
@@ -1032,7 +1018,6 @@ function escapeHtml(value){
     .replace(/'/g,"&#039;");
 }
 
-/* CLEAR CURRENT LEDGER */
 function clearCurrentLedger(){
   if(readonlyMode){
     alert("This ledger is read-only. Open a ledger or edit a saved file first.");
@@ -1045,7 +1030,6 @@ function clearCurrentLedger(){
   saveCurrentDraft();
 }
 
-/* NEW LEDGER */
 function startNewLedger(){
   if(!readonlyMode&&editingSavedId){
     const saveFirst=confirm(
@@ -1076,12 +1060,6 @@ document.addEventListener("keydown",event=>{
   }
 });
 
-/*
-  STARTUP:
-  Every refresh shows the Date/Name modal.
-  EXIT lets the user reach Saved Files without creating a new ledger.
-  Existing saved files remain intact.
-*/
 function startup(){
   buildRows();
 
@@ -1102,7 +1080,6 @@ function startup(){
   openStartModal(false);
 }
 
-/* PWA SERVICE WORKER */
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>{
     navigator.serviceWorker.register("./sw.js?v=1").catch(error=>{
