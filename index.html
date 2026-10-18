@@ -1,0 +1,1117 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>RPLMC Ledger</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:#f3f4f6;color:#111827;font-family:Arial,Helvetica,sans-serif}
+body{min-height:100vh;padding-bottom:8px}
+button,input{font-family:inherit}
+button{border:0;cursor:pointer;touch-action:manipulation}
+.app{width:100%;max-width:700px;margin:0 auto}
+.top-bar{position:sticky;top:0;z-index:20;background:#111827;color:#fff;min-height:46px;padding:4px 5px;display:flex;align-items:center;gap:4px;box-shadow:0 2px 5px rgba(0,0,0,.20)}
+.current-info{flex:1;min-width:0;line-height:1.02;overflow:hidden;display:flex;align-items:center;gap:4px}
+.current-date{font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.current-name{font-size:13px;font-weight:900;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-btn{height:31px;min-width:44px;padding:0 6px;border-radius:5px;color:#fff;font-size:10px;font-weight:900}
+.btn-clear{background:#dc2626}
+.btn-save{background:#059669}
+.btn-new{background:#2563eb}
+#clearBtn,#newBtn{display:none!important}
+.table-wrap{width:100%;overflow-x:auto;background:#fff}
+.ledger-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.ledger-table th,.ledger-table td{border:1px solid #d1d5db;padding:0}
+.ledger-table thead th{height:29px;background:#374151;color:#fff;font-size:11px;font-weight:900;text-align:center;position:relative;z-index:2}
+.ledger-table th:first-child{width:38%}
+.ledger-table th:not(:first-child){width:10.4%}
+.ledger-table th:last-child{width:10%}
+.name-header{cursor:pointer;user-select:none;touch-action:manipulation}
+.name-header:active{background:#4b5563}
+.ledger-row{height:28px;background:#fff;transition:background .12s ease}
+.ledger-row.current-row{background:#dbeafe}
+.ledger-row.current-row td{border-top-color:#60a5fa;border-bottom-color:#60a5fa}
+.ledger-row.current-row td:first-child{border-left:3px solid #2563eb}
+.ledger-row.current-row td:last-child{border-right:2px solid #2563eb}
+.name-cell{display:grid;grid-template-columns:17px minmax(0,1fr) 51px;align-items:center;width:100%;height:27px;padding:1px 2px;gap:2px}
+.row-number{width:17px;min-width:17px;text-align:center;font-size:9px;font-weight:900;color:#6b7280}
+.name-input{width:100%;min-width:0;height:23px;border:1px solid #d1d5db;border-radius:3px;padding:1px 3px;background:#fff;color:#111827;font-size:12px;font-weight:800;outline:none;text-transform:none}
+.name-input:focus{border-color:#2563eb;box-shadow:0 0 0 1px #2563eb}
+.name-input:disabled{background:#f3f4f6;color:#6b7280;cursor:not-allowed}
+.time-display{width:100%;height:23px;border-left:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;padding-left:2px;color:#4b5563;background:#f9fafb;font-size:9px;font-weight:800;white-space:nowrap;overflow:hidden}
+.qty-input{width:100%;height:27px;border:0;background:transparent;text-align:center;color:#111827;font-size:12px;font-weight:800;outline:none;padding:0 1px}
+.qty-input:focus{background:#fff;box-shadow:inset 0 0 0 2px #2563eb}
+.qty-input:disabled{color:#6b7280;background:#f9fafb}
+.row-total{text-align:center;font-size:12px;font-weight:900;color:#111827;background:#f9fafb}
+.total-row{height:30px;background:#111827;color:#fff;font-size:12px;font-weight:900;position:sticky;bottom:0;z-index:9}
+.total-row td{border-color:#374151;height:30px}
+.total-label{text-align:right;padding-right:5px!important;font-size:11px}
+.total-value{text-align:center;font-size:12px}
+.saved-section{margin-top:5px;background:#fff;border-top:1px solid #d1d5db}
+.saved-title{background:#111827;color:#fff;text-align:center;padding:5px 4px 2px;font-size:11px;font-weight:900}
+.saved-subtitle{background:#111827;color:#d1d5db;text-align:center;padding:0 4px 5px;font-size:8px}
+.saved-list{max-height:125px;overflow-y:auto}
+.no-files{text-align:center;padding:8px;color:#6b7280;font-size:10px;font-weight:700}
+.saved-item{display:flex;align-items:center;gap:4px;min-height:38px;padding:3px 5px;border-bottom:1px solid #e5e7eb;background:#fff}
+.saved-item.selected{background:#dbeafe}
+.saved-main{flex:1;min-width:0;cursor:pointer;padding:1px 2px}
+.saved-number{display:inline-block;width:18px;color:#6b7280;font-size:9px;font-weight:900}
+.saved-date{font-size:13px;font-weight:900;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-name{margin-top:1px;padding-left:18px;font-size:9px;color:#4b5563;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-action{height:27px;min-width:41px;border-radius:4px;color:#fff;font-size:9px;font-weight:900}
+.edit-btn{background:#2563eb}
+.delete-btn{background:#dc2626}
+.modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.58);display:none;align-items:center;justify-content:center;padding:15px}
+.modal-backdrop.show{display:flex}
+.modal{width:100%;max-width:390px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 15px 40px rgba(0,0,0,.35)}
+.modal-title{background:#111827;color:#fff;text-align:center;padding:13px 10px;font-size:16px;font-weight:900}
+.modal-body{padding:15px}
+.modal-label{display:block;margin:0 0 5px;font-size:12px;font-weight:900;color:#374151}
+.modal-input{width:100%;height:42px;border:1px solid #d1d5db;border-radius:6px;padding:0 10px;font-size:15px;font-weight:700;outline:none;margin-bottom:12px}
+.modal-input:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
+.modal-message{text-align:center;font-size:14px;line-height:1.45;color:#374151}
+.modal-actions{display:flex;gap:7px;padding:0 15px 15px}
+.modal-btn{flex:1;height:42px;border-radius:6px;color:#fff;font-size:12px;font-weight:900}
+.modal-cancel{background:#6b7280}
+.modal-confirm{background:#2563eb}
+.modal-save{background:#059669}
+.modal-danger{background:#dc2626}
+body.readonly .ledger-table tbody tr{cursor:default}
+@media(max-width:380px){
+.top-bar{min-height:44px}
+.top-btn{min-width:41px;height:29px;padding:0 4px;font-size:9px}
+.current-date{font-size:13px}
+.current-name{font-size:12px}
+.ledger-table thead th{font-size:10px;height:28px}
+.ledger-row{height:27px}
+.name-cell{grid-template-columns:16px minmax(0,1fr) 48px;height:26px}
+.row-number{width:16px;min-width:16px;font-size:8px}
+.name-input{height:22px;font-size:11px}
+.time-display{height:22px;font-size:8px}
+.qty-input,.row-total{font-size:11px}
+.total-row,.total-row td{height:29px}
+.saved-list{max-height:110px}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div class="top-bar">
+    <div class="current-info">
+      <div class="current-date" id="currentDateDisplay">NO LEDGER</div>
+      <div class="current-name" id="currentNameDisplay">Open a ledger</div>
+    </div>
+    <button class="top-btn btn-clear" id="clearBtn">CLEAR</button>
+    <button class="top-btn btn-save" id="saveBtn">SAVE</button>
+    <button class="top-btn btn-new" id="newBtn">NEW</button>
+  </div>
+
+  <div class="table-wrap">
+    <table class="ledger-table">
+      <thead>
+        <tr>
+          <th id="nameHeader" class="name-header" title="Tap 5 times to unlock Name">🔒 NAME | TIME</th>
+          <th>R</th><th>P</th><th>L</th><th>M</th><th>C</th><th>TOTAL</th>
+        </tr>
+      </thead>
+      <tbody id="ledgerBody"></tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td class="total-label">TOTAL</td>
+          <td class="total-value" id="grandR">0</td>
+          <td class="total-value" id="grandP">0</td>
+          <td class="total-value" id="grandL">0</td>
+          <td class="total-value" id="grandM">0</td>
+          <td class="total-value" id="grandC">0</td>
+          <td class="total-value" id="grandTotal">0</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <section class="saved-section">
+    <div class="saved-title">SAVED LEDGER FILES</div>
+    <div class="saved-subtitle">Tap a file to preview • Tap again to return to current</div>
+    <div class="saved-list" id="savedList"><div class="no-files">No saved ledger files</div></div>
+  </section>
+</div>
+
+<!-- START MODAL: EXIT only closes the modal -->
+<div class="modal-backdrop" id="startModal">
+  <div class="modal">
+    <div class="modal-title" id="startModalTitle">START LEDGER</div>
+    <div class="modal-body">
+      <label class="modal-label">DATE</label>
+      <input type="date" class="modal-input" id="startDateInput">
+      <label class="modal-label">NAME</label>
+      <input type="text" class="modal-input" id="startNameInput" placeholder="Enter name" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="exitStartBtn" type="button">EXIT</button>
+      <button class="modal-btn modal-confirm" id="openLedgerBtn" type="button">OPEN LEDGER</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="saveModal">
+  <div class="modal">
+    <div class="modal-title">CONFIRM &amp; SAVE LEDGER FILE</div>
+    <div class="modal-body">
+      <label class="modal-label">DATE</label>
+      <input type="date" class="modal-input" id="saveDateInput">
+      <label class="modal-label">NAME</label>
+      <input type="text" class="modal-input" id="saveNameInput" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="cancelSaveBtn">CANCEL</button>
+      <button class="modal-btn modal-save" id="confirmSaveBtn">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="replaceModal">
+  <div class="modal">
+    <div class="modal-title">REPLACE SAVED FILE?</div>
+    <div class="modal-body">
+      <div class="modal-message" id="replaceMessage">A saved file with this date already exists.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="cancelReplaceBtn">CANCEL</button>
+      <button class="modal-btn modal-danger" id="confirmReplaceBtn">REPLACE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const STORAGE_SAVED = "rplmc_name_ledger_saved_files";
+const STORAGE_DRAFT = "rplmc_name_ledger_current_draft";
+const STORAGE_DRAFT_BACKUP = "rplmc_name_ledger_current_draft_backup";
+const MAX_SAVED_FILES = 30;
+const ROW_COUNT = 19;
+
+let editingSavedId = null;
+let selectedSavedId = null;
+let temporaryCurrentState = null;
+let pendingReplaceId = null;
+let pendingSaveData = null;
+let nameColumnLocked = true;
+let nameTapCount = 0;
+let nameTapTimer = null;
+let readonlyMode = true;
+
+const ledgerBody = document.getElementById("ledgerBody");
+const currentDateDisplay = document.getElementById("currentDateDisplay");
+const currentNameDisplay = document.getElementById("currentNameDisplay");
+const nameHeader = document.getElementById("nameHeader");
+const savedList = document.getElementById("savedList");
+const startModal = document.getElementById("startModal");
+const startModalTitle = document.getElementById("startModalTitle");
+const startDateInput = document.getElementById("startDateInput");
+const startNameInput = document.getElementById("startNameInput");
+const saveModal = document.getElementById("saveModal");
+const saveDateInput = document.getElementById("saveDateInput");
+const saveNameInput = document.getElementById("saveNameInput");
+const replaceModal = document.getElementById("replaceModal");
+const replaceMessage = document.getElementById("replaceMessage");
+
+function getCurrentTime(){
+  const now = new Date();
+  let hours = now.getHours();
+  const minutes = String(now.getMinutes()).padStart(2,"0");
+  const suffix = hours >= 12 ? "pm" : "am";
+  hours = hours % 12;
+  if(hours === 0) hours = 12;
+  return `${hours}:${minutes}${suffix}`;
+}
+
+function buildRows(){
+  ledgerBody.innerHTML = "";
+  for(let i=1;i<=ROW_COUNT;i++){
+    const tr = document.createElement("tr");
+    tr.className = "ledger-row";
+    tr.dataset.row = i;
+    tr.innerHTML = `
+      <td><div class="name-cell">
+        <span class="row-number">${i}</span>
+        <input class="name-input" data-field="name" type="text" maxlength="3" autocomplete="off" disabled>
+        <span class="time-display" data-field="time"></span>
+      </div></td>
+      ${["R","P","L","M","C"].map(field=>`
+        <td><input class="qty-input" data-field="${field}" type="number" inputmode="decimal" min="0" step="any"></td>
+      `).join("")}
+      <td class="row-total">0</td>`;
+    ledgerBody.appendChild(tr);
+  }
+  attachRowEvents();
+  updateNameColumnLock();
+  calculate();
+}
+
+function rowHasContent(row){
+  if(!row) return false;
+  return ["name","R","P","L","M","C"].some(field=>
+    row.querySelector(`[data-field="${field}"]`).value.trim() !== ""
+  );
+}
+
+function updateRowTime(row){
+  if(!row) return;
+  const time=row.querySelector('[data-field="time"]');
+  if(!time) return;
+  if(!rowHasContent(row)){
+    time.textContent="";
+    return;
+  }
+  if(!time.textContent) time.textContent=getCurrentTime();
+}
+
+function attachRowEvents(){
+  document.querySelectorAll(".ledger-row").forEach(row=>{
+    row.querySelectorAll("input").forEach(input=>{
+      input.addEventListener("focus",()=>{
+        if(!readonlyMode) setCurrentRow(row);
+      });
+
+      input.addEventListener("click",()=>{
+        if(!readonlyMode) setCurrentRow(row);
+      });
+
+      input.addEventListener("input",()=>{
+        if(readonlyMode) return;
+        setCurrentRow(row);
+        updateRowTime(row);
+        calculate();
+        saveCurrentDraft();
+      });
+
+      input.addEventListener("change",()=>{
+        if(readonlyMode) return;
+        updateRowTime(row);
+        calculate();
+        saveCurrentDraft();
+      });
+
+      input.addEventListener("blur",()=>{
+        if(readonlyMode) return;
+        updateRowTime(row);
+        calculate();
+        saveCurrentDraft();
+      });
+    });
+  });
+}
+
+function setCurrentRow(row){
+  document.querySelectorAll(".ledger-row.current-row").forEach(r=>r.classList.remove("current-row"));
+  if(row) row.classList.add("current-row");
+}
+
+function numberValue(input){
+  const value=parseFloat(input.value);
+  return Number.isFinite(value)?value:0;
+}
+
+function formatNumber(value){
+  if(Number.isInteger(value)) return value.toString();
+  return value.toFixed(2).replace(/\.00$/,"").replace(/(\.\d)0$/,"$1");
+}
+
+function calculate(){
+  let grandR=0,grandP=0,grandL=0,grandM=0,grandC=0,grandTotal=0;
+
+  document.querySelectorAll(".ledger-row").forEach(row=>{
+    const R=numberValue(row.querySelector('[data-field="R"]'));
+    const P=numberValue(row.querySelector('[data-field="P"]'));
+    const L=numberValue(row.querySelector('[data-field="L"]'));
+    const M=numberValue(row.querySelector('[data-field="M"]'));
+    const C=numberValue(row.querySelector('[data-field="C"]'));
+    const total=R+P+L+M+C;
+
+    row.querySelector(".row-total").textContent=formatNumber(total);
+    grandR+=R;
+    grandP+=P;
+    grandL+=L;
+    grandM+=M;
+    grandC+=C;
+    grandTotal+=total;
+  });
+
+  document.getElementById("grandR").textContent=formatNumber(grandR);
+  document.getElementById("grandP").textContent=formatNumber(grandP);
+  document.getElementById("grandL").textContent=formatNumber(grandL);
+  document.getElementById("grandM").textContent=formatNumber(grandM);
+  document.getElementById("grandC").textContent=formatNumber(grandC);
+  document.getElementById("grandTotal").textContent=formatNumber(grandTotal);
+}
+
+function formatDisplayDate(dateString){
+  if(!dateString) return "NO DATE";
+  const d=new Date(dateString+"T00:00:00");
+  if(Number.isNaN(d.getTime())) return dateString;
+  return d.toLocaleDateString(undefined,{
+    weekday:"long",month:"short",day:"numeric",year:"numeric"
+  });
+}
+
+function todayString(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function updateCurrentHeader(){
+  const date=document.body.dataset.ledgerDate||"";
+  const name=document.body.dataset.ledgerName||"";
+  currentDateDisplay.textContent=date?formatDisplayDate(date):"NO LEDGER";
+  currentNameDisplay.textContent=name||"Open a ledger";
+}
+
+function captureLedger(){
+  const rows=[];
+
+  document.querySelectorAll(".ledger-row").forEach(row=>{
+    rows.push({
+      name:row.querySelector('[data-field="name"]').value,
+      time:row.querySelector('[data-field="time"]').textContent,
+      R:row.querySelector('[data-field="R"]').value,
+      P:row.querySelector('[data-field="P"]').value,
+      L:row.querySelector('[data-field="L"]').value,
+      M:row.querySelector('[data-field="M"]').value,
+      C:row.querySelector('[data-field="C"]').value
+    });
+  });
+
+  return {
+    date:document.body.dataset.ledgerDate||"",
+    name:document.body.dataset.ledgerName||"",
+    modifiedAt:Date.now(),
+    rows
+  };
+}
+
+function applyLedger(data){
+  if(!data) return;
+
+  document.body.dataset.ledgerDate=data.date||"";
+  document.body.dataset.ledgerName=data.name||"";
+
+  const rows=data.rows||[];
+
+  document.querySelectorAll(".ledger-row").forEach((row,index)=>{
+    const item=rows[index]||{};
+    row.querySelector('[data-field="name"]').value=item.name||"";
+    row.querySelector('[data-field="time"]').textContent=item.time||"";
+
+    ["R","P","L","M","C"].forEach(field=>{
+      row.querySelector(`[data-field="${field}"]`).value=item[field]??"";
+    });
+  });
+
+  nameColumnLocked=true;
+  updateNameColumnLock();
+  updateCurrentHeader();
+  calculate();
+}
+
+function clearLedgerValues(){
+  document.querySelectorAll(".ledger-row").forEach(row=>{
+    row.querySelector('[data-field="name"]').value="";
+    row.querySelector('[data-field="time"]').textContent="";
+    ["R","P","L","M","C"].forEach(field=>{
+      row.querySelector(`[data-field="${field}"]`).value="";
+    });
+  });
+  setCurrentRow(null);
+  calculate();
+}
+
+function hasLedgerData(data){
+  if(!data||!Array.isArray(data.rows)) return false;
+  return data.rows.some(row=>
+    ["name","R","P","L","M","C"].some(field=>
+      String(row[field]??"").trim()!==""
+    )
+  );
+}
+
+function currentHasData(){
+  return hasLedgerData(captureLedger());
+}
+
+function updateNameColumnLock(){
+  document.querySelectorAll(".name-input").forEach(input=>{
+    input.disabled=readonlyMode||nameColumnLocked;
+  });
+
+  nameHeader.textContent=nameColumnLocked?"🔒 NAME | TIME":"🔓 NAME | TIME";
+  nameHeader.title=nameColumnLocked
+    ?"Tap 5 times to unlock Name"
+    :"Tap 5 times to lock Name";
+}
+
+nameHeader.addEventListener("click",()=>{
+  if(readonlyMode) return;
+
+  nameTapCount++;
+  clearTimeout(nameTapTimer);
+  nameTapTimer=setTimeout(()=>{nameTapCount=0;},1200);
+
+  if(nameTapCount>=5){
+    nameTapCount=0;
+    nameColumnLocked=!nameColumnLocked;
+    updateNameColumnLock();
+    saveCurrentDraft();
+
+    if(!nameColumnLocked){
+      const firstName=document.querySelector(".name-input");
+      if(firstName) firstName.focus();
+    }
+  }
+});
+
+function setReadonly(state){
+  readonlyMode=state;
+  document.body.classList.toggle("readonly",state);
+
+  document.querySelectorAll(".qty-input").forEach(input=>{
+    input.disabled=state;
+  });
+
+  updateNameColumnLock();
+}
+
+function getSavedFiles(){
+  try{
+    const raw=localStorage.getItem(STORAGE_SAVED);
+    if(!raw) return [];
+
+    const data=JSON.parse(raw);
+    return Array.isArray(data)?data:[];
+  }catch(error){
+    console.error("Unable to read saved files:",error);
+    return [];
+  }
+}
+
+function setSavedFiles(files){
+  localStorage.setItem(STORAGE_SAVED,JSON.stringify(files));
+}
+
+function sortSavedFiles(a,b){
+  const dateCompare=String(b.date).localeCompare(String(a.date));
+  if(dateCompare!==0) return dateCompare;
+  return Number(b.modifiedAt||0)-Number(a.modifiedAt||0);
+}
+
+function makeLedgerId(){
+  return "ledger_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+}
+
+/*
+  AUTO-SAVE:
+  - The active ledger is saved directly to SAVED FILES.
+  - Every input updates the same file.
+  - Only one file is kept per date.
+*/
+function saveCurrentDraft(){
+  if(readonlyMode) return false;
+
+  const ledger=captureLedger();
+  if(!ledger.date||!ledger.name) return false;
+
+  const files=getSavedFiles();
+  const oldById=editingSavedId
+    ?files.find(file=>file.id===editingSavedId)
+    :null;
+
+  const oldByDate=files.find(file=>file.date===ledger.date);
+  const id=(oldById&&oldById.id)||(oldByDate&&oldByDate.id)||makeLedgerId();
+
+  const record={
+    id,
+    date:ledger.date,
+    name:ledger.name,
+    rows:ledger.rows,
+    modifiedAt:Date.now()
+  };
+
+  let updated=files.filter(file=>
+    file.id!==id && file.date!==ledger.date
+  );
+
+  updated.push(record);
+  updated.sort(sortSavedFiles);
+
+  if(updated.length>MAX_SAVED_FILES){
+    updated=updated.slice(0,MAX_SAVED_FILES);
+  }
+
+  try{
+    setSavedFiles(updated);
+    editingSavedId=id;
+
+    const draft={
+      ledger,
+      editingSavedId:id,
+      savedAt:Date.now()
+    };
+
+    const serialized=JSON.stringify(draft);
+    localStorage.setItem(STORAGE_DRAFT,serialized);
+    localStorage.setItem(STORAGE_DRAFT_BACKUP,serialized);
+
+    renderSavedFiles();
+    return true;
+  }catch(error){
+    console.error("Unable to auto-save ledger:",error);
+    alert("Auto-save failed. Please check your phone storage before continuing.");
+    return false;
+  }
+}
+
+function removeCurrentDraft(){
+  try{
+    localStorage.removeItem(STORAGE_DRAFT);
+    localStorage.removeItem(STORAGE_DRAFT_BACKUP);
+  }catch(error){
+    console.error("Unable to remove draft:",error);
+  }
+}
+
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden") saveCurrentDraft();
+});
+
+window.addEventListener("pagehide",saveCurrentDraft);
+window.addEventListener("beforeunload",saveCurrentDraft);
+
+/* START MODAL */
+function openStartModal(isNew=false){
+  startModalTitle.textContent=isNew?"START NEW LEDGER":"START LEDGER";
+  startDateInput.value=todayString();
+  startNameInput.value="";
+  startModal.classList.add("show");
+}
+
+function closeStartModal(){
+  startModal.classList.remove("show");
+}
+
+/*
+  EXIT closes only the modal.
+  It does not create a ledger, clear entries, or delete saved files.
+  After EXIT, use EDIT beside the saved date to continue working.
+*/
+document.getElementById("exitStartBtn").addEventListener("click",()=>{
+  closeStartModal();
+});
+
+/* OPEN LEDGER */
+document.getElementById("openLedgerBtn").addEventListener("click",()=>{
+  const date=startDateInput.value.trim();
+  const name=startNameInput.value.trim();
+
+  if(!date){
+    alert("Please enter the date.");
+    return;
+  }
+
+  if(!name){
+    alert("Please enter the name.");
+    return;
+  }
+
+  const files=getSavedFiles();
+  const existing=files.find(file=>file.date===date);
+
+  if(existing){
+    const proceed=confirm(
+      "A ledger for this date already exists.\n\n"+
+      "Open the existing file and keep its entries?\n\n"+
+      formatDisplayDate(existing.date)+"\n"+
+      existing.name
+    );
+
+    if(!proceed) return;
+
+    applyLedger(existing);
+    editingSavedId=existing.id;
+    document.body.dataset.ledgerName=name;
+  }else{
+    clearLedgerValues();
+    document.body.dataset.ledgerDate=date;
+    document.body.dataset.ledgerName=name;
+    editingSavedId=null;
+  }
+
+  selectedSavedId=null;
+  temporaryCurrentState=null;
+  nameColumnLocked=true;
+
+  setReadonly(false);
+  updateNameColumnLock();
+  updateCurrentHeader();
+  closeStartModal();
+
+  saveCurrentDraft();
+  setCurrentRow(null);
+  renderSavedFiles();
+});
+
+/* SAVE / FINALIZE MODAL */
+function openSaveModal(){
+  if(readonlyMode){
+    alert("This ledger is read-only. Open a ledger or edit a saved file first.");
+    return;
+  }
+
+  const date=document.body.dataset.ledgerDate||"";
+  const name=document.body.dataset.ledgerName||"";
+
+  if(!date||!name){
+    openStartModal();
+    return;
+  }
+
+  saveDateInput.value=date;
+  saveNameInput.value=name;
+  saveModal.classList.add("show");
+}
+
+function closeSaveModal(){
+  saveModal.classList.remove("show");
+}
+
+document.getElementById("saveBtn").addEventListener("click",openSaveModal);
+document.getElementById("cancelSaveBtn").addEventListener("click",closeSaveModal);
+
+let pendingEditAfterSave=null;
+
+function finishAfterSave(){
+  const nextEditId=pendingEditAfterSave;
+  pendingEditAfterSave=null;
+  pendingReplaceId=null;
+  pendingSaveData=null;
+
+  document.body.dataset.ledgerDate="";
+  document.body.dataset.ledgerName="";
+
+  editingSavedId=null;
+  selectedSavedId=null;
+  temporaryCurrentState=null;
+
+  clearLedgerValues();
+  removeCurrentDraft();
+
+  nameColumnLocked=true;
+  setReadonly(true);
+  updateNameColumnLock();
+  updateCurrentHeader();
+
+  closeSaveModal();
+  replaceModal.classList.remove("show");
+  renderSavedFiles();
+
+  alert("Ledger saved successfully.");
+
+  if(nextEditId){
+    editSavedFile(nextEditId);
+  }else{
+    openStartModal(true);
+  }
+}
+
+/* FINALIZE CURRENT LEDGER */
+function performSave(){
+  const date=saveDateInput.value.trim();
+  const name=saveNameInput.value.trim();
+
+  if(!date){
+    alert("Please enter the date.");
+    return;
+  }
+
+  if(!name){
+    alert("Please enter the name.");
+    return;
+  }
+
+  const current=captureLedger();
+  current.date=date;
+  current.name=name;
+  current.modifiedAt=Date.now();
+
+  const files=getSavedFiles();
+  const sameDate=files.find(file=>
+    file.date===date && file.id!==editingSavedId
+  );
+
+  if(sameDate){
+    pendingReplaceId=sameDate.id;
+    pendingSaveData=current;
+
+    replaceMessage.innerHTML=
+      `A saved ledger for <b>${escapeHtml(formatDisplayDate(date))}</b> already exists.`+
+      `<br><br>Replace that file with the current ledger?`;
+
+    replaceModal.classList.add("show");
+    return;
+  }
+
+  const existingIndex=files.findIndex(file=>file.id===editingSavedId);
+
+  if(existingIndex>=0){
+    files[existingIndex]={
+      ...files[existingIndex],
+      date,
+      name,
+      rows:current.rows,
+      modifiedAt:Date.now()
+    };
+
+    const uniqueFiles=files.filter((file,index,array)=>
+      array.findIndex(other=>other.date===file.date)===index
+    );
+
+    uniqueFiles.sort(sortSavedFiles);
+    setSavedFiles(uniqueFiles.slice(0,MAX_SAVED_FILES));
+  }else{
+    const sameDateFile=files.find(file=>file.date===date);
+
+    if(sameDateFile){
+      sameDateFile.name=name;
+      sameDateFile.rows=current.rows;
+      sameDateFile.modifiedAt=Date.now();
+      setSavedFiles(files);
+    }else{
+      files.push({
+        id:makeLedgerId(),
+        date,
+        name,
+        rows:current.rows,
+        modifiedAt:Date.now()
+      });
+
+      files.sort(sortSavedFiles);
+      setSavedFiles(files.slice(0,MAX_SAVED_FILES));
+    }
+  }
+
+  finishAfterSave();
+}
+
+document.getElementById("confirmSaveBtn").addEventListener("click",performSave);
+
+/* REPLACE EXISTING DATE */
+document.getElementById("cancelReplaceBtn").addEventListener("click",()=>{
+  pendingReplaceId=null;
+  pendingSaveData=null;
+  replaceModal.classList.remove("show");
+});
+
+document.getElementById("confirmReplaceBtn").addEventListener("click",()=>{
+  if(!pendingReplaceId||!pendingSaveData){
+    replaceModal.classList.remove("show");
+    return;
+  }
+
+  const current=pendingSaveData;
+  const files=getSavedFiles();
+  const target=files.find(file=>file.id===pendingReplaceId);
+
+  if(!target){
+    pendingReplaceId=null;
+    pendingSaveData=null;
+    replaceModal.classList.remove("show");
+    alert("The selected saved file could not be found. Please try again.");
+    return;
+  }
+
+  const activeId=editingSavedId;
+
+  let updated=files.filter(file=>
+    file.id!==pendingReplaceId &&
+    (!activeId||file.id!==activeId) &&
+    file.date!==current.date
+  );
+
+  updated.push({
+    id:pendingReplaceId,
+    date:current.date,
+    name:current.name,
+    rows:current.rows,
+    modifiedAt:Date.now()
+  });
+
+  updated.sort(sortSavedFiles);
+  setSavedFiles(updated.slice(0,MAX_SAVED_FILES));
+
+  pendingReplaceId=null;
+  pendingSaveData=null;
+
+  finishAfterSave();
+});
+
+/* PREVIEW SAVED FILE */
+function previewSavedFile(id){
+  const file=getSavedFiles().find(item=>item.id===id);
+  if(!file) return;
+
+  if(selectedSavedId===id&&temporaryCurrentState){
+    returnToCurrent();
+    return;
+  }
+
+  if(!readonlyMode){
+    saveCurrentDraft();
+    temporaryCurrentState=captureLedger();
+    temporaryCurrentState.editingSavedId=editingSavedId;
+  }else{
+    temporaryCurrentState=null;
+  }
+
+  selectedSavedId=id;
+  applyLedger(file);
+  setReadonly(true);
+  nameColumnLocked=true;
+  updateNameColumnLock();
+  renderSavedFiles();
+}
+
+/* RETURN TO CURRENT WORKING LEDGER */
+function returnToCurrent(){
+  if(temporaryCurrentState){
+    applyLedger(temporaryCurrentState);
+    editingSavedId=temporaryCurrentState.editingSavedId||null;
+    setReadonly(false);
+    saveCurrentDraft();
+  }else{
+    document.body.dataset.ledgerDate="";
+    document.body.dataset.ledgerName="";
+    clearLedgerValues();
+    editingSavedId=null;
+    setReadonly(true);
+    updateCurrentHeader();
+  }
+
+  temporaryCurrentState=null;
+  selectedSavedId=null;
+  nameColumnLocked=true;
+  updateNameColumnLock();
+  renderSavedFiles();
+}
+
+/*
+  EDIT SAVED FILE:
+  Current entries are already auto-saved, so switching files
+  does not require finalizing the current ledger first.
+*/
+function requestEditSavedFile(id){
+  editSavedFile(id);
+}
+
+function editSavedFile(id){
+  const file=getSavedFiles().find(item=>item.id===id);
+  if(!file) return;
+
+  applyLedger(file);
+  editingSavedId=file.id;
+  selectedSavedId=null;
+  temporaryCurrentState=null;
+  nameColumnLocked=true;
+
+  setReadonly(false);
+  updateNameColumnLock();
+  updateCurrentHeader();
+  saveCurrentDraft();
+  closeStartModal();
+  renderSavedFiles();
+  setCurrentRow(null);
+}
+
+/* DELETE SAVED FILE */
+function deleteSavedFile(id){
+  const files=getSavedFiles();
+  const file=files.find(item=>item.id===id);
+  if(!file) return;
+
+  const okay=confirm(
+    `Delete this saved ledger?\n\n${formatDisplayDate(file.date)}\n${file.name}`
+  );
+
+  if(!okay) return;
+
+  setSavedFiles(files.filter(item=>item.id!==id));
+
+  if(editingSavedId===id){
+    editingSavedId=null;
+    selectedSavedId=null;
+    temporaryCurrentState=null;
+
+    document.body.dataset.ledgerDate="";
+    document.body.dataset.ledgerName="";
+    clearLedgerValues();
+    removeCurrentDraft();
+    setReadonly(true);
+    updateCurrentHeader();
+
+    openStartModal(false);
+  }
+
+  if(selectedSavedId===id){
+    selectedSavedId=null;
+  }
+
+  renderSavedFiles();
+}
+
+/* RENDER SAVED FILES */
+function renderSavedFiles(){
+  const files=getSavedFiles().sort(sortSavedFiles);
+
+  if(!files.length){
+    savedList.innerHTML='<div class="no-files">No saved ledger files</div>';
+    return;
+  }
+
+  savedList.innerHTML="";
+
+  files.forEach((file,index)=>{
+    const item=document.createElement("div");
+    item.className="saved-item"+(selectedSavedId===file.id?" selected":"");
+
+    const main=document.createElement("div");
+    main.className="saved-main";
+
+    main.innerHTML=`
+      <div class="saved-date">
+        <span class="saved-number">${index+1}.</span>
+        ${escapeHtml(formatDisplayDate(file.date))}
+      </div>
+      <div class="saved-name">${escapeHtml(file.name)}</div>`;
+
+    main.addEventListener("click",()=>previewSavedFile(file.id));
+
+    const edit=document.createElement("button");
+    edit.className="saved-action edit-btn";
+    edit.textContent="EDIT";
+    edit.addEventListener("click",event=>{
+      event.stopPropagation();
+      requestEditSavedFile(file.id);
+    });
+
+    const del=document.createElement("button");
+    del.className="saved-action delete-btn";
+    del.textContent="DELETE";
+    del.addEventListener("click",event=>{
+      event.stopPropagation();
+      deleteSavedFile(file.id);
+    });
+
+    item.append(main,edit,del);
+    savedList.appendChild(item);
+  });
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+/* CLEAR CURRENT LEDGER */
+function clearCurrentLedger(){
+  if(readonlyMode){
+    alert("This ledger is read-only. Open a ledger or edit a saved file first.");
+    return;
+  }
+
+  if(!confirm("Clear all current ledger entries?")) return;
+
+  clearLedgerValues();
+  saveCurrentDraft();
+}
+
+/* NEW LEDGER */
+function startNewLedger(){
+  if(!readonlyMode&&editingSavedId){
+    const saveFirst=confirm(
+      "Your current ledger is already auto-saved.\n\n"+
+      "Finalize it before starting another ledger?"
+    );
+
+    if(saveFirst){
+      openSaveModal();
+      return;
+    }
+  }
+
+  editingSavedId=null;
+  selectedSavedId=null;
+  temporaryCurrentState=null;
+  openStartModal(true);
+}
+
+document.getElementById("clearBtn").addEventListener("click",clearCurrentLedger);
+document.getElementById("newBtn").addEventListener("click",startNewLedger);
+
+document.addEventListener("keydown",event=>{
+  if(event.key==="Enter"&&
+     document.activeElement&&
+     document.activeElement.classList.contains("qty-input")){
+    event.preventDefault();
+  }
+});
+
+/*
+  STARTUP:
+  Every refresh shows the Date/Name modal.
+  EXIT lets the user reach Saved Files without creating a new ledger.
+  Existing saved files remain intact.
+*/
+function startup(){
+  buildRows();
+
+  document.body.dataset.ledgerDate="";
+  document.body.dataset.ledgerName="";
+
+  clearLedgerValues();
+  editingSavedId=null;
+  selectedSavedId=null;
+  temporaryCurrentState=null;
+
+  setReadonly(true);
+  nameColumnLocked=true;
+  updateNameColumnLock();
+  updateCurrentHeader();
+
+  renderSavedFiles();
+  openStartModal(false);
+}
+
+/* PWA SERVICE WORKER */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("./sw.js?v=1").catch(error=>{
+      console.log("Service worker registration failed:",error);
+    });
+  });
+}
+
+startup();
+</script>
+</body>
+</html>
